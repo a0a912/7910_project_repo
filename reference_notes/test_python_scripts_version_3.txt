@@ -1,0 +1,359 @@
+#!/usr/bin/env python3
+"""
+generate_test_images.py
+
+Creates the baseline 4K test images used for the Plan B (photo) file-
+carving experiment: a solid red image and a solid blue image, each
+with identical, hardcoded metadata so runs are reproducible (same
+metadata in -> same file bytes -> same hash, every time).
+
+Output layout:
+    test_images/
+        red_4k.png
+        blue_4k.png
+        manifest.json      <- expected color / hash / metadata per
+                               image; read later by verify_recovery.py
+
+Usage:
+    python3 generate_test_images.py [output_dir]
+    (output_dir defaults to "test_images")
+"""
+
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+from PIL import Image, PngImagePlugin
+
+WIDTH, HEIGHT = 3840, 2160
+
+# Fixed metadata, not "now()" -- this is the whole point: nothing here
+# changes between runs, so file hashes stay reproducible.
+FIXED_METADATA = {
+    "creation_time": "2020-01-01T00:00:00Z",
+    "software": "fs_recovery_experiment/generate_test_images.py",
+    "author": "FS Recovery Experiment Team",
+}
+
+IMAGES = [
+    {"filename": "red_4k.png", "color": (255, 0, 0), "description": "Solid red baseline image"},
+    {"filename": "blue_4k.png", "color": (0, 0, 255), "description": "Solid blue baseline image"},
+]
+
+
+def build_exif_bytes(description: str) -> bytes:
+    """Minimal, fixed EXIF block (ImageDescription/Artist/DateTime/Software)."""
+    exif = Image.Exif()
+    exif[270] = description                    # ImageDescription
+    exif[315] = FIXED_METADATA["author"]        # Artist
+    exif[306] = "2020:01:01 00:00:00"           # DateTime
+    exif[305] = FIXED_METADATA["software"]      # Software
+    return exif.tobytes()
+
+
+def build_png_info(description: str) -> PngImagePlugin.PngInfo:
+    """Human-readable metadata stored directly as PNG tEXt chunks, so
+    it's visible even to tools that don't bother parsing EXIF."""
+    info = PngImagePlugin.PngInfo()
+    info.add_text("Description", description)
+    info.add_text("Creation Time", FIXED_METADATA["creation_time"])
+    info.add_text("Software", FIXED_METADATA["software"])
+    info.add_text("Author", FIXED_METADATA["author"])
+    return info
+
+
+def sha256_of_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def main():
+    out_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("test_images")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    manifest = {
+        "width": WIDTH,
+        "height": HEIGHT,
+        "metadata": FIXED_METADATA,
+        "images": {},
+    }
+
+    for spec in IMAGES:
+        path = out_dir / spec["filename"]
+        img = Image.new("RGB", (WIDTH, HEIGHT), spec["color"])
+
+        exif_bytes = build_exif_bytes(spec["description"])
+        png_info = build_png_info(spec["description"])
+
+        # compress_level pinned explicitly so it can't quietly change
+        # between Pillow versions/machines and shift the file hash.
+        img.save(path, format="PNG", exif=exif_bytes, pnginfo=png_info, compress_level=6)
+
+        color_hex = "#{:02x}{:02x}{:02x}".format(*spec["color"])
+        file_hash = sha256_of_file(path)
+
+        manifest["images"][spec["filename"]] = {
+            "color_rgb": list(spec["color"]),
+            "color_hex": color_hex,
+            "description": spec["description"],
+            "sha256": file_hash,
+        }
+
+        print(f"Created: {path}")
+        print(f"  Color:    {color_hex}  {spec['color']}")
+        print(f"  Metadata: {FIXED_METADATA}")
+        print(f"  SHA-256:  {file_hash}")
+        print()
+
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2))
+    print(f"Manifest written to: {manifest_path}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+#!/usr/bin/env python3
+"""
+corrupt_images.py
+
+Demo "worst case" corruption tool. Copies every image in a source
+directory into an output directory, then randomly overwrites a
+percentage of pixels in each copy with random RGB noise, to simulate
+an imperfect file-carving recovery.
+
+By default this writes COPIES to a separate output directory rather
+than touching the originals in place -- you want to keep the pristine
+baseline from generate_test_images.py around to compare against on
+every run. Pass --in-place only if you deliberately want to corrupt
+files where they sit.
+
+Usage:
+    python3 corrupt_images.py [--src test_images] [--dst test_images/corrupted]
+                               [--percent 15] [--seed 42] [--in-place]
+"""
+
+import argparse
+import sys
+from pathlib import Path
+
+import numpy as np
+from PIL import Image, PngImagePlugin
+
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
+
+
+def corrupt_image(src_path: Path, dst_path: Path, percent: float) -> tuple[int, int]:
+    """Randomly overwrite `percent`% of pixels with random RGB noise.
+    Returns (num_pixels_corrupted, total_pixels)."""
+    img = Image.open(src_path)
+
+    # Metadata has to be pulled off the image object *before* we
+    # convert to a numpy array, since that drops all of Pillow's
+    # image.info bookkeeping.
+    exif_bytes = img.info.get("exif")
+    text_chunks = dict(getattr(img, "text", {}))
+
+    arr = np.array(img.convert("RGB"))
+    h, w, _ = arr.shape
+    total_pixels = h * w
+
+    mask = np.random.random((h, w)) < (percent / 100.0)
+    num_corrupted = int(mask.sum())
+
+    noise = np.random.randint(0, 256, size=(num_corrupted, 3), dtype=np.uint8)
+    arr[mask] = noise
+
+    corrupted_img = Image.fromarray(arr, mode="RGB")
+
+    save_kwargs = {}
+    if exif_bytes:
+        save_kwargs["exif"] = exif_bytes
+    if text_chunks and dst_path.suffix.lower() == ".png":
+        info = PngImagePlugin.PngInfo()
+        for k, v in text_chunks.items():
+            if isinstance(v, str):
+                info.add_text(k, v)
+        save_kwargs["pnginfo"] = info
+
+    dst_path.parent.mkdir(parents=True, exist_ok=True)
+    corrupted_img.save(dst_path, **save_kwargs)
+    return num_corrupted, total_pixels
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Randomly corrupt pixels in images to simulate imperfect recovery.")
+    parser.add_argument("--src", default="test_images", help="Source directory of clean images (default: test_images)")
+    parser.add_argument("--dst", default=None, help="Output directory for corrupted copies (default: <src>/corrupted)")
+    parser.add_argument("--percent", type=float, default=15.0, help="Percent of pixels to corrupt per image (default: 15)")
+    parser.add_argument("--seed", type=int, default=None, help="Random seed, for reproducible corruption runs")
+    parser.add_argument("--in-place", action="store_true", help="DANGEROUS: overwrite source images instead of writing copies")
+    args = parser.parse_args()
+
+    if args.seed is not None:
+        np.random.seed(args.seed)
+
+    src_dir = Path(args.src)
+    if not src_dir.is_dir():
+        print(f"Source directory not found: {src_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    if args.in_place:
+        dst_dir = src_dir
+    else:
+        dst_dir = Path(args.dst) if args.dst else src_dir / "corrupted"
+
+    image_paths = sorted(
+        p for p in src_dir.iterdir()
+        if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
+    )
+    if not image_paths:
+        print(f"No images found in {src_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Corrupting {len(image_paths)} image(s) at {args.percent}% pixel loss "
+          f"(seed={args.seed}) -> {dst_dir}\n")
+
+    for src_path in image_paths:
+        dst_path = src_path if args.in_place else dst_dir / src_path.name
+        num_corrupted, total_pixels = corrupt_image(src_path, dst_path, args.percent)
+        print(f"{src_path.name}: corrupted {num_corrupted:,} / {total_pixels:,} pixels "
+              f"({100 * num_corrupted / total_pixels:.2f}%) -> {dst_path}")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
+#!/usr/bin/env python3
+"""
+verify_recovery.py
+
+Checks every image in a directory of "recovered" images against the
+expected baseline recorded in manifest.json (written by
+generate_test_images.py):
+
+  1. Compare the recovered file's SHA-256 against the manifest's
+     SHA-256. Match -> perfect recovery, done.
+  2. If they don't match, compare every pixel against the expected
+     solid color from the manifest -- we already know exactly what
+     color every pixel should be, which is the whole point of using
+     solid-color baseline images -- and report what percentage of
+     pixels are still exactly right.
+
+Usage:
+    python3 verify_recovery.py [--dir test_images/corrupted]
+                                [--manifest test_images/manifest.json]
+
+If --manifest is omitted, it's auto-discovered by checking --dir
+itself and then its parent directory (matches the
+test_images/manifest.json + test_images/corrupted/ layout produced by
+scripts 1 and 2).
+"""
+
+import argparse
+import hashlib
+import json
+import sys
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+from PIL import Image
+
+
+def sha256_of_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def find_manifest(explicit_path: Optional[str], search_dir: Path) -> Path:
+    if explicit_path:
+        p = Path(explicit_path)
+        if not p.is_file():
+            print(f"Manifest not found: {p}", file=sys.stderr)
+            sys.exit(1)
+        return p
+
+    candidates = [search_dir / "manifest.json", search_dir.parent / "manifest.json"]
+    for c in candidates:
+        if c.is_file():
+            return c
+
+    print("Could not find manifest.json (checked: "
+          + ", ".join(str(c) for c in candidates) + ")", file=sys.stderr)
+    sys.exit(1)
+
+
+def check_image(path: Path, expected: dict) -> dict:
+    actual_hash = sha256_of_file(path)
+    expected_hash = expected["sha256"]
+
+    print(f"{path.name}:")
+    print(f"  Expected SHA-256: {expected_hash}")
+    print(f"  Actual   SHA-256: {actual_hash}")
+
+    if actual_hash == expected_hash:
+        print("  Result: PERFECT RECOVERY (hash match)\n")
+        return {"filename": path.name, "perfect": True, "recovery_pct": 100.0}
+
+    print(f"  Hash mismatch -- checking pixel-by-pixel against expected color {expected['color_hex']}...")
+
+    img = Image.open(path).convert("RGB")
+    arr = np.array(img)
+    expected_color = np.array(expected["color_rgb"], dtype=np.uint8)
+
+    matches = np.all(arr == expected_color, axis=-1)
+    total_pixels = matches.size
+    matching_pixels = int(matches.sum())
+    lost_pixels = total_pixels - matching_pixels
+    recovery_pct = 100.0 * matching_pixels / total_pixels
+
+    print(f"  Pixels intact:    {matching_pixels:,} / {total_pixels:,}")
+    print(f"  Pixels lost:      {lost_pixels:,}")
+    print(f"  Recovery rate:    {recovery_pct:.4f}%\n")
+
+    return {"filename": path.name, "perfect": False, "recovery_pct": recovery_pct}
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Verify recovered images against a baseline manifest.")
+    parser.add_argument("--dir", default=".", help="Directory of recovered images to check (default: current directory)")
+    parser.add_argument("--manifest", default=None, help="Path to manifest.json (default: auto-discover)")
+    args = parser.parse_args()
+
+    check_dir = Path(args.dir)
+    if not check_dir.is_dir():
+        print(f"Directory not found: {check_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    manifest_path = find_manifest(args.manifest, check_dir)
+    manifest = json.loads(manifest_path.read_text())
+    print(f"Using manifest: {manifest_path}\n")
+
+    results = []
+    for filename, expected in manifest["images"].items():
+        img_path = check_dir / filename
+        if not img_path.is_file():
+            print(f"{filename}: NOT FOUND in {check_dir} -- skipping\n")
+            continue
+        results.append(check_image(img_path, expected))
+
+    if not results:
+        print("No images checked.")
+        return
+
+    print("=== Summary ===")
+    perfect = sum(1 for r in results if r["perfect"])
+    avg_pct = sum(r["recovery_pct"] for r in results) / len(results)
+    for r in results:
+        status = "PERFECT" if r["perfect"] else f"{r['recovery_pct']:.2f}% recovered"
+        print(f"  {r['filename']}: {status}")
+    print(f"  {perfect}/{len(results)} images perfectly recovered, average recovery rate {avg_pct:.4f}%")
+
+
+if __name__ == "__main__":
+    main()
