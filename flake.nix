@@ -1,7 +1,7 @@
 {
   description = "NixOS VM for testing file-recovery tools across filesystems";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs.nixpkgs.url = "https://channels.nixos.org/nixos-unstable/nixexprs.tar.zst";
 
   outputs =
     { self, nixpkgs }:
