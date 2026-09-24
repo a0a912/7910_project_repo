@@ -122,6 +122,7 @@
                   find "$dir" -type f -exec sha256sum {} + | awk '{print $1}' | sort -u > "$found"
 
                   awk '
+                    BEGIN { hit = 0; total = 0 }
                     FILENAME == ARGV[1] { found[$1] = 1; next }
                     {
                       file = $0
@@ -134,7 +135,7 @@
                       }
                     }
                     END {
-                      print hit "/" total " files recovered byte-for-byte"
+                      printf "%d/%d files recovered byte-for-byte\n", hit, total
                     }
                   ' "$found" /root/manifest.sha256
                 '';
