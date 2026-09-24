@@ -13,7 +13,7 @@ def make_report():
             elif line.startswith("T"):
                 fail_counter += 1
 
-    pixels = 1920 + 1080
+    pixels = 1920 * 1080
     result_pixel = (((pixels) - pixel_counter) / pixels) * 100
 
     return [float("%.2f"%result_pixel), hash_counter, fail_counter]
