@@ -18,7 +18,7 @@ mkdir -p /mnt/out
 mkfs.ext4 /dev/vdc
 mount /dev/vdc /mnt/out
 
-# run recovery command, i.e. `photorec /dev/vdb`
+photorec /d /mnt/out /cmd /dev/vdb   partition_none,options,mode_ext2,1,search
 
 check-recovered /mnt/out
 ```
