@@ -163,7 +163,7 @@
                 #   /dev/vdc = output target for recovered files
                 # (/dev/vda is the VM's own root disk)
                 emptyDiskImages = [
-                  2048
+                  1024
                   2048
                 ];
               };
