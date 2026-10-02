@@ -30,9 +30,10 @@
                   btrfs-progs
                   exfatprogs
                   ntfs3g
+                  bcachefs-tools
                 ];
                 text = ''
-                  fs=''${1:?usage: prep-fs <ext4|btrfs|exfat|ntfs> [delete|reformat] [device]}
+                  fs=''${1:?usage: prep-fs <ext4|btrfs|exfat|ntfs|bcachefs> [delete|reformat] [device]}
                   mode=''${2:-delete}
                   dev=''${3:-/dev/vdb}
                   mnt=/mnt/test
@@ -43,6 +44,7 @@
                       btrfs) mkfs.btrfs -q -f "$dev" ;;
                       exfat) mkfs.exfat "$dev" ;;
                       ntfs)  mkfs.ntfs -F -Q "$dev" ;;
+                      bcachefs) mkfs.bcachefs -q -f "$dev" ;;
                       *) echo "unsupported fs: $fs" >&2; exit 1 ;;
                     esac
                   }
@@ -52,6 +54,15 @@
                       mount -t ntfs-3g "$dev" "$mnt"
                     else
                       mount "$dev" "$mnt"
+                    fi
+                  }
+
+                  umount_dev() {
+                    umount "$mnt"
+                    # bcachefs keeps a per-device lock; release it so the same
+                    # device can be formatted/mounted again.
+                    if [ "$fs" = bcachefs ]; then
+                      bcachefs unlock "$dev" || true
                     fi
                   }
 
@@ -92,11 +103,11 @@
                       echo ">> deleting everything"
                       rm -rf "''${mnt:?}"/*
                       sync -f "$mnt"
-                      umount "$mnt"
+                      umount_dev
                       ;;
                     reformat)
                       echo ">> quick reformat (same fs)"
-                      umount "$mnt"
+                      umount_dev
                       mkfs_dev
                       ;;
                     *) echo "unknown mode: $mode" >&2; exit 1 ;;
@@ -150,6 +161,7 @@
                 "btrfs"
                 "exfat"
                 "ntfs"
+                "bcachefs"
               ];
 
               services.getty.autologinUser = "root";
@@ -182,6 +194,7 @@
                 btrfs-progs
                 exfatprogs
                 ntfs3g
+                bcachefs-tools
 
                 # misc
                 util-linux
