@@ -33,7 +33,7 @@
                   bcachefs-tools
                 ];
                 text = ''
-                  fs=''${1:?usage: prep-fs <ext4|btrfs|exfat|ntfs|bcachefs> [delete|reformat] [device]}
+                  fs=''${1:?usage: prep-fs <ext4|btrfs|exfat|ntfs|bcachefs> [delete|delete-overwrite|reformat] [device] [overwrite-MiB]}
                   mode=''${2:-delete}
                   dev=''${3:-/dev/vdb}
                   mnt=/mnt/test
@@ -105,12 +105,50 @@
                       sync -f "$mnt"
                       umount_dev
                       ;;
+
+                    delete-overwrite)
+                      overwrite_mb=''${4:-64}
+
+                      echo ">> deleting everything"
+                      rm -rf "''${mnt:?}"/*
+                      sync -f "$mnt"
+
+                      echo ">> unmounting after deletion"
+                      umount_dev
+
+                      echo ">> remounting read-write"
+                      mount_dev
+
+                      echo ">> writing ''${overwrite_mb} MiB of new data"
+                      mkdir -p "$mnt/post-delete"
+
+                      dd \
+                        if=/dev/urandom \
+                        of="$mnt/post-delete/new-data.bin" \
+                        bs=1M \
+                        count="$overwrite_mb" \
+                        status=progress \
+                        conv=fsync
+
+                      printf 'This file was created after the original files were deleted.\n' \
+                        > "$mnt/post-delete/after-delete.txt"
+
+                      sync -f "$mnt"
+
+                      echo ">> unmounting"
+                      umount_dev
+                      ;;
+
                     reformat)
                       echo ">> quick reformat (same fs)"
                       umount_dev
                       mkfs_dev
                       ;;
-                    *) echo "unknown mode: $mode" >&2; exit 1 ;;
+
+                    *)
+                      echo "unknown mode: $mode" >&2
+                      exit 1
+                      ;;
                   esac
 
                   echo ">> done: $dev is unmounted and ready for recovery attempts"
