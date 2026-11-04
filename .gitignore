@@ -218,3 +218,15 @@ __marimo__/
 .streamlit/secrets.toml
 
 *.qcow2
+
+
+# Core LaTeX auxiliary files
+*.aux
+*.bbl
+*.blg
+*.log
+*.synctex.gz
+
+# Latexmk build tracking files
+*.fdb_latexmk
+*.fls
