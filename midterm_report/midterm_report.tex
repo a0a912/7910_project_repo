@@ -21,8 +21,14 @@ member1, member2, member3, member4@bcit.ca}
 
 \maketitle
 \begin{abstract}
-This document is a model and instructions for \LaTeX.
-This and the IEEEtran.cls file define the components of your paper [title, text, heads, etc.]. 
+
+Digital forensic investigations often require recovering deleted or reformatted data from storage media. Existing research has examined file-carving techniques, recovery tools, and individual file systems. However, comparatively less research has directly evaluated how different file-system architectures affect data recoverability under identical experimental conditions. This study proposes a controlled, reproducible comparison of forensic file recovery across NTFS, exFAT, ext4, Btrfs, and bcachefs using a standardized NixOS virtual-machine environment.
+
+This study will experimentally evaluate whether file-system architecture affects forensic data recoverability under controlled conditions. A reproducible NixOS virtual-machine environment will be used to test NTFS, exFAT, ext4, Btrfs, and bcachefs using fresh virtual disks for each experimental run. A standardized dataset containing known files will be written to each file system and cryptographic hashes will be recorded before a controlled data-loss procedure is performed and file recovery will then be attempted using PhotoRec.
+
+This study aims to determine whether file-system type produces measurable differences in forensic data recoverability when hardware-related factors are intentionally controlled. The resulting virtual test environment is intended to provide a reproducible baseline for comparing file-system behaviour.
+
+
 \end{abstract}
 
 \begin{IEEEkeywords}
