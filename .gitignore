@@ -230,3 +230,6 @@ __marimo__/
 # Latexmk build tracking files
 *.fdb_latexmk
 *.fls
+
+# PDF (so we don't keep pushing our own personal copies)
+*.pdf
