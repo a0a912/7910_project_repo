@@ -88,10 +88,67 @@ Write your previous work here. We explore related work in three broad areas: the
 \subsection{Theme 3}
 
 \section{Methodology}
-Explain the comprehensive approach you used to conduct this research here.
+% Explain the comprehensive approach you used to conduct this research here.
+This research will use a quantitative, experimental, comparative methodology. It is quantitative because forensic recoverability will be measured using numerical outcomes, including the number and proportion of files recovered, SHA-256 hash matches, and image-content similarity. It is experimental because the researchers will deliberately vary the file system while controlling the virtual storage environment, dataset, recovery software, and data-loss procedure. It is comparative because the same experimental process will be repeated across multiple file systems and the resulting recovery measurements will be compared.
+
 \subsection{Research Method}
+
+The primary independent variable will be file-system type, with five experimental levels: NTFS, exFAT, ext4, Btrfs, and bcachefs. If multiple data-loss scenarios are tested, the data-loss condition will act as a secondary independent variable.
+We are specifically using Nixos which will allow us to control specific packages.
+The primary dependent variable will be forensic recovery success. This will be measured through exact file recovery, determined by comparison with SHA-256 hashes recorded before deletion. For recoverable image files that fail exact hash verification, secondary measurements will evaluate image dimensions and pixel-level similarity to determine the extent to which visual content was recovered.
+Controlled variables will include the virtual-machine configuration, virtual-disk size, source dataset, filesystem preparation process, recovery software, recovery destination, and experimental procedure. A fresh virtual disk will be provided for each test run to prevent residual data from previous experiments from contaminating later trials.
+The virtual environment is particularly appropriate for this research because it isolates filesystem behaviour from physical-device characteristics. Consequently, the results should be interpreted as a controlled theoretical baseline rather than a direct simulation of real-world storage behaviour.
+
 \subsection {Data Sampling}
+
+Experiments will be conducted within a standardized NixOS virtual-machine environment. Each VM boot will provide a fresh virtual disk for the filesystem under test and a separate virtual disk for recovery output. This design prevents recovered files from being written back to the source disk and reduces contamination between experimental runs. The experiment involves scanning the unmounted virtual test disk directly with PhotoRec rather than traditionally creating a forensic image. Direct source-disk or partition scanning has precedent in prior PhotoRec and Docker-carving experiments Pratama \cite{pratama2021photorec} and Kumar and Haribabu \cite{kumar2022docker}. However, for this experiment we will be using a virtual environment.
+
+For each trial, the test disk will be formatted using one of the selected file systems: NTFS, exFAT, ext4, Btrfs, or bcachefs. An identical standardized dataset will then be written to the file system. Before deletion, SHA-256 hashes will be generated and stored for later integrity verification. The current recovery environment already follows this model by creating known files and recording their hashes before the data-loss operation.
+
+The data loss scenario will test recovery after a logical delete via the gnu coreutils `rm` command. Next, a different fixed dataset will be written to the recovery target disk to simulate data being overwritten by normal computer use. Afterwards, the disk will be unmounted and photorec will be run against the recovery target disk.
+
+Image files will be subject to an additional evaluation for partially recovered data. The team's current Python implementation generates deterministic 1920×1080-pixel solid-colour PNG images with preset metadata and is capable of comparing images at the individual-pixel level. The analysis code compares image content hashes and when they differ, records the coordinates of pixels with different RGB values.
+
+For each filesystem, the experimental procedure will be as follows:
+\begin{enumerate}
+    \item A fresh virtual test disk will be created.
+    \item The virtual disk will be formatted using the selected filesystem.
+    \item The standardized test corpus will be written to the filesystem.
+    \item SHA-256 hashes of all original test files will be recorded before the data-loss operation.
+    \item A controlled data-loss condition will be applied.
+    \item The test filesystem will be unmounted before recovery.
+    \item PhotoRec will scan the test disk and write recovered files to the separate recovery-output disk.
+    \item Recovered files will be compared with the original SHA-256 log.
+    \item Recoverable image files that do not match any hashes will undergo secondary image-content analysis.
+    \item The resulting measurements will be written to structured experiment logs for later statistical analysis.
+\end{enumerate}
+
+Steps 1-10 will be repeated 10 times for each file system. The average of the test results will be used to determine the file-recoverability of each file system.
+
 \subsection {Data Analysis Techniques}
+
+Recovery results will be analyzed primarily using exact file integrity and recovery-rate measurements.
+
+Photorec mainly recovers files by patterns in the file contents rather than file system records. Therefore, the differences in recovery are not solely reliant on the file system architecture. However, with our reproducible vm environment testing each filesystem with the same recovery files we can control other factors and compare the filesystems in the exact same conditions.
+
+First, each recovered file will be hashed and compared with the SHA-256 hashes recorded in the original log. A matching hash indicates the file was recovered byte-for-byte. For each filesystem and experimental condition, the following values will be calculated:
+
+\textbf{File recovery rate:}
+% Proper way to input an equation
+\begin{equation}
+% shrink the equation to 90% of the column width. --> (0.90\columnwidth)
+\resizebox{0.90\columnwidth}{!}{$\displaystyle
+\text{File Recovery Rate} = \frac{\text{Number of target files recovered}}{\text{Total number of target files}} \times 100
+$}
+\end{equation}
+
+\textbf{Exact recovery rate:}
+\begin{equation}
+\resizebox{0.95\columnwidth}{!}{$\displaystyle
+\text{Exact Recovery Rate} = \frac{\text{Recovered files with matching SHA-256 hashes}}{\text{Total number of recovered target files}} \times 100
+$}
+\end{equation}
+
 \subsection {Data Measurement Models}
 
 \section{Evaluation}
