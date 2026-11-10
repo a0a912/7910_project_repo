@@ -151,6 +151,19 @@ $}
 
 \subsection {Data Measurement Models}
 
+We will be using a continuous measurement model to test data recoverability. A matching SHA-256 hash will indicate that the recovered artifact is identical to its baseline version. The existing Nix recovery checker already follows this concept by matching recovered files against the previously generated manifest based on SHA-256 rather than relying on filenames, which may be lost during file carving.
+For image artifacts that are recovered but fail integrity verification, additional content-level analysis will be performed. The Python image-analysis program is designed to compare image dimensions, image-content hashes, metadata, and individual pixel values. A pixel-integrity measurement can therefore be expressed as: 
+
+\begin{equation}
+\resizebox{0.80\columnwidth}{!}{$\displaystyle
+\text{Pixel Integrity} = \frac{\text{Matching pixels}}{\text{Total pixels}} \times 100
+$}
+\end{equation}
+
+This provides a more granular measurement than classifying every non-identical file simply as "unrecovered." Choi and Lee \cite{choi2022raid} note that recovered artifacts can themselves be corrupted when portions of a file have been overwritten, meaning that successful identification of an artifact does not necessarily imply complete content recovery. For example, an image that is 99.9\% visually intact but contains corruption in a small region should be distinguishable from an image that could not be recovered at all.
+Recovery speed will also be evaluated. Acquisition time, PhotoRec carving time, and total recovery-processing time should be stored separately. Results for each filesystem will then be summarized using descriptive statistics such as mean, median, standard deviation, minimum, and maximum recovery rate and processing time.
+The results can be presented using bar charts for mean recovery rates, box plots for the distribution of recovery times across repeated trials, and a comparison table and heatmap showing exact and partial recovery performance for each filesystem.
+
 \section{Evaluation}
 \subsection{Research Questions/Hypothesis}
 \subsection {Evaluation metrics}
