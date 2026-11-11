@@ -83,13 +83,90 @@ The research gap addressed in this proposal is therefore the limited availabilit
 
 The objective of this research is to deploy an automated, repeatable virtual testing environment to compare forensic data-recovery outcomes across different file systems while minimizing variation from hardware and experimental setup. This study aims to explore how the underlying filesystem architecture (NTFS, ext4, exFAT, Btrfs, and bcachefs) affects the subsequent file carving through PhotoRec.
 
-\section{Literature Review}
-Write your previous work here. We explore related work in three broad areas: theme 1, theme 2, and theme 3, followed by a literature review matrix that highlights the unanswered research gaps in each theme.
 
-\subsection {Literature Review Matrix}
-\subsection{Theme 1}
-\subsection{Theme 2}
-\subsection{Theme 3}
+\section{Literature Review}
+
+The literature relevant to this study spans two related but distinct approaches to deleted-data recovery. The first is \emph{content-based file carving}, in which tools such as PhotoRec search storage for recognizable file signatures and structures without depending on an intact filesystem directory. The second is \emph{filesystem-aware recovery}, in which investigators interpret filesystem-specific metadata such as the NTFS Master File Table (MFT), Ext4 journals, FAT allocation structures, or Btrfs B-trees. Both approaches show that deleted data can remain recoverable, but they measure different aspects of recoverability. For this reason, the present study keeps PhotoRec constant and treats filesystem type as the independent variable rather than attempting to compare fundamentally different recovery algorithms.
+
+We organize the reviewed work into three themes: (1) file-carving tools and controlled recovery experiments, (2) filesystem-specific recovery and metadata structures, and (3) storage-medium effects, virtualization, and reproducible forensic testing. Table~\ref{tab:lit_matrix} summarizes representative studies and the specific limitation each leaves for the present experiment.
+
+\subsection{Literature Review Matrix}
+
+\begin{table*}[t]
+\caption{Literature Review Matrix}
+\label{tab:lit_matrix}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.7pt}
+\renewcommand{\arraystretch}{1.14}
+\begin{tabularx}{\textwidth}{|p{2.15cm}|C{0.65cm}|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+\hline
+\textbf{Study} & \textbf{Year} & \textbf{Method / Scope} & \textbf{Main Finding} & \textbf{Relevance to This Study} & \textbf{Remaining Limitation / Gap} \\
+\hline
+Carranza and DeCusatis \cite{carranza2021daubert} & 2021 & Repeated validation of open-source forensic tools in the CAINE environment, including PhotoRec. & PhotoRec produced consistent recovery behaviour across repeated scans. & Supports using a documented open-source carver in a repeatable experimental workflow. & Validates tools rather than comparing filesystem architectures. \\
+\hline
+Pratama \cite{pratama2021photorec} & 2021 & Direct PhotoRec recovery of 2,781 erased files from a FAT32 USB flash drive. & All 2,781 test files were reported recovered in the tested scenario. & Provides precedent for direct source-partition scanning and quantitative recovery counts. & One filesystem and one physical medium, does not isolate filesystem effects. \\
+\hline
+Kumar and Haribabu \cite{kumar2022docker} & 2022 & Deleted Docker-container data carved with Scalpel, Foremost, and PhotoRec using multiple file types. & Recovery varied by tool and file type, PhotoRec recovered 5/10 files and original names/timestamps were not preserved. & Closely parallels a controlled software-defined recovery environment and supports hash-based identification rather than filenames. & Compares carving tools, not filesystems, small test corpus. \\
+\hline
+Tam and Abdullah \cite{tam2024androidjpeg} & 2024 & JPEG carving and geotag analysis on Android images with integrity verification. & Recovered JPEGs were checked using hash comparison in addition to metadata analysis. & Supports cryptographic hash verification as a measure of exact recovery. & Focused on JPEG/mobile forensics rather than cross-filesystem comparison. \\
+\hline
+Liambas and Manios \cite{liambas2024performance} & 2024 & Performance comparison of forensic tools across operating systems with repeated trials. & Repeated testing was used to calculate average execution performance. & Supports repeated runs and recording processing time rather than relying on a single trial. & Varies operating environments and tools rather than isolating filesystem type. \\
+\hline
+Venkatesh et al. \cite{venkatesh2024ntfs} & 2024 & Deleted-file recovery from NTFS using Python, PyTSK3, and MFT metadata. & Demonstrated high recovery in the test images and showed the forensic value of surviving MFT records. & Shows directly that filesystem-specific metadata can influence recoverability after deletion. & NTFS-specific, metadata-aware method, not a generic carving comparison. \\
+\hline
+Kim et al. \cite{kim2021ext4xfs} & 2021 & TSK-based Ext4 journal recovery and XFS metadata extraction, compared with existing tools. & Metadata/version changes affected recovery support and integrity, the proposed filesystem-aware framework improved recovery accuracy. & Demonstrates that filesystem design and version-specific metadata can change recovery outcomes. & Limited to Ext4/XFS and uses filesystem-aware parsing rather than one common carver. \\
+\hline
+Kuts et al. \cite{kuts2023fat32} & 2023 & Experimental deleted-file recovery in FAT32 using its cluster and directory structures. & Recovery success varied by file type and surviving cluster information, signature recovery could lose metadata. & Shows that deletion semantics and file layout can influence what a recovery tool reconstructs. & FAT32-specific and does not test the modern filesystem set used here. \\
+\hline
+Pandey et al. \cite{pandey2026btrfs} & 2026 & Deterministic deleted-file recovery by parsing Btrfs CoW trees, historical roots, inodes, and extents. & Btrfs historical structures can support content, path, and metadata reconstruction when required structures survive. & Provides strong evidence that CoW filesystem architecture creates recovery behaviour unlike traditional filesystems. & Btrfs-specific specialized algorithm, its results are not directly equivalent to PhotoRec carving. \\
+\hline
+Aigbogun and Zhou \cite{aigbogun2025f2fs} & 2025 & Forensic study of F2FS and emerging file systems. & Highlights the need for forensic methods to evolve with newer filesystem designs and metadata structures. & Supports including modern filesystems rather than limiting comparisons to legacy FAT/NTFS families. & Does not provide a controlled PhotoRec comparison across the filesystems in this experiment. \\
+\hline
+Chhajed \cite{chhajed2024persistence} & 2024 & Compared persistence of deleted files across different filesystems and HDD/SSD media. & Persistence was affected by filesystem, storage medium, operating environment, and subsequent activity. & One of the closest comparative studies and motivates treating filesystem as an explicit variable. & Hardware, operating-system, and activity effects make filesystem-only attribution difficult. \\
+\hline
+Sibe and Idigbo \cite{sibe2025pii} & 2025 & Recovery of residual data from three refurbished hard drives reportedly formatted/sanitized. & One drive yielded 28,691 recoverable files including sensitive PII. & Demonstrates the practical forensic and privacy importance of residual deleted data. & Real devices introduce uncontrolled history, hardware state, and sanitization differences. \\
+\hline
+Iqbal and Soewito \cite{iqbal2020ssdtrim} & 2020 & Static forensic recovery from SSD storage with TRIM and Deep Freeze across repeated scenarios. & Recovery became less successful across later scenarios, demonstrating the effect of SSD behaviour on residual data. & Supports separating logical filesystem effects from physical-storage mechanisms in the first phase of the project. & Hardware/firmware behaviour is central, so filesystem effects cannot be isolated. \\
+\hline
+Chen et al. \cite{chen2022ransomware} & 2022 & Ransomware-data recovery using filesystem forensics together with flash translation layer extraction. & Demonstrates that evidence can exist below the logical filesystem layer. & Motivates treating hardware/FTL recovery as a future extension rather than mixing it into the virtual baseline. & Focused on ransomware and flash-layer recovery rather than standardized filesystem comparison. \\
+\hline
+Wickramasekara et al. \cite{wickramasekara2026autodfbench} & 2026 & Benchmarking framework for repeatable digital-forensic tool testing and generated-code evaluation. & Emphasizes standardized, reproducible test cases and measurable outputs when evaluating forensic tools. & Supports automation, fixed test data, repeated trials, and structured result collection. & General benchmarking framework rather than a study of deleted-file recovery across filesystems. \\
+\hline
+\end{tabularx}
+\end{table*}
+
+\subsection{Theme 1: File Carving and Controlled Recovery Experiments}
+
+A substantial portion of the literature evaluates whether deleted content can be reconstructed using general-purpose carving tools. PhotoRec is especially relevant because it searches the underlying storage for recognizable file structures rather than depending on active filesystem directory entries. Carranza and DeCusatis \cite{carranza2021daubert} validated PhotoRec as part of an open-source CAINE forensic workflow and reported consistent behaviour over repeated scans. Pratama \cite{pratama2021photorec} likewise used PhotoRec directly against a FAT32 USB flash drive and reported recovery of all 2,781 test files. Dasmen et al. \cite{dasmen2024photorec} further demonstrate PhotoRec's use for recovering multiple file types from external storage. These studies establish PhotoRec as an appropriate controlled recovery tool, but their high recovery rates should not be generalized to every deletion scenario, filesystem, or storage medium.
+
+Other research shows why a standardized dataset and integrity test are necessary. Kumar and Haribabu \cite{kumar2022docker} populated Docker containers with several file types, deleted the containers, and carved the underlying partition using Scalpel, Foremost, and PhotoRec. Their recovery rates differed across tools, with PhotoRec recovering 5 of 10 files, while original filenames and timestamps were not preserved. This result is important for the present experiment because a recovered filename cannot be assumed to identify the original artifact. Instead, the proposed testbed compares recovered content against pre-deletion SHA-256 hashes. Tam and Abdullah \cite{tam2024androidjpeg} similarly use hashing to verify recovered JPEG integrity, providing precedent for treating exact cryptographic identity as a stronger outcome than simple file detection.
+
+The Docker study is also methodologically useful because it performs carving directly against the relevant partition rather than requiring an intermediate forensic image \cite{kumar2022docker}. This resembles the proposed NixOS testbed, where the virtual test disk is unmounted and then scanned directly by PhotoRec. The purpose of the current experiment is therefore not to evaluate forensic acquisition procedures, but to hold the recovery procedure constant while examining whether the logical filesystem environment changes what PhotoRec can reconstruct. Liambas and Manios \cite{liambas2024performance} further support repeated benchmarking rather than one-off measurements, while AutoDFBench \cite{wickramasekara2026autodfbench} provides broader support for standardized test cases and reproducible evaluation of forensic tools.
+
+\subsection{Theme 2: Filesystem Architecture and Deleted-Data Recovery}
+
+Filesystem-aware research demonstrates that deletion is not a uniform operation across storage formats. NTFS, Ext4, FAT32, XFS, Btrfs, and newer Linux filesystems maintain different allocation and metadata structures, so the forensic traces that survive deletion can differ substantially. Venkatesh et al. \cite{venkatesh2024ntfs} recover deleted NTFS files by interpreting MFT records, illustrating that metadata may continue to describe a deleted file until relevant records or data regions are reused. Zhang et al. \cite{zhang2020windows} similarly compare recovery logic for FAT32 and NTFS and attribute differences in recovery to their distinct storage and metadata mechanisms.
+
+Linux filesystems introduce different sources of recoverable state. Kim et al. \cite{kim2021ext4xfs} show that Ext4 journal structures and XFS metadata versions affect extraction and deleted-file recovery, and that existing tools may produce recovered files whose hashes do not match the originals. Their results reinforce the need to distinguish a tool merely outputting a file from an exact, verified recovery. They also show that forensic support can lag behind filesystem changes, because a tool designed around one metadata version may not correctly interpret a newer structure. Aigbogun and Zhou \cite{aigbogun2025f2fs} extend this concern to F2FS and other emerging filesystems, showing why contemporary filesystem designs remain an active forensic research problem.
+
+Btrfs is especially important to the present study because its copy-on-write architecture differs substantially from traditional allocation-table or journal-based designs. Pandey et al. \cite{pandey2026btrfs} reconstruct deleted files by traversing Btrfs B-trees and historical roots, recovering not only content but also paths and inode metadata when the necessary structures remain resolvable. Their work also identifies an important limitation of signature carving: a carver may recover recognizable file content without reconstructing filesystem provenance, directory structure, timestamps, or other metadata. Therefore, this project does not claim to measure the \emph{maximum possible} recovery from Btrfs, NTFS, Ext4, or any other filesystem. It measures recovery through one standardized carving method, PhotoRec, so that the same recovery process is applied to every filesystem.
+
+The reviewed literature is comparatively strong for NTFS, FAT32, Ext4, XFS, and Btrfs, but the current corpus contains much less direct experimental work on exFAT and especially bcachefs. This does not establish that such research does not exist, rather, it identifies an imbalance within the literature collected for this project and strengthens the value of including newer filesystems in a common experimental baseline.
+
+\subsection{Theme 3: Storage Media, Virtualization, and Experimental Control}
+
+Physical storage behaviour is a major confounding factor in deleted-data recovery. Sibe and Idigbo \cite{sibe2025pii} recovered 28,691 files containing sensitive information from one of three refurbished drives that had reportedly been formatted and sanitized, illustrating both the practical importance and the unpredictability of residual data on real devices. Chhajed \cite{chhajed2024persistence} is particularly close to the present research question because it compares deleted-file persistence across multiple filesystems and disk types. However, its results also reflect storage medium, operating-system behaviour, and subsequent user activity, making it difficult to attribute differences exclusively to filesystem architecture.
+
+SSD-specific studies make this problem more explicit. Iqbal and Soewito \cite{iqbal2020ssdtrim} examine recovery in an SSD environment involving TRIM and show that recoverability declines across their scenarios. Chen et al. \cite{chen2022ransomware} investigate recovery using both filesystem forensics and flash translation layer data extraction, demonstrating that relevant remnants may exist below the logical filesystem. These studies are important for real-world forensics, but they also show why introducing physical flash hardware in the present experiment would make the independent variable harder to isolate.
+
+The NixOS virtual-machine design is therefore intended as a controlled first-stage model rather than a complete reproduction of physical storage. Each trial uses a fresh virtual disk, the same test corpus, the same deletion and overwrite procedure, the same PhotoRec version, and the same recovery destination. Virtualization cannot model controller firmware, TRIM implementation, garbage collection, wear levelling, or physical media degradation, but excluding those mechanisms is deliberate: it allows the experiment to establish a software-level baseline before hardware effects are introduced in future work. The controlled software environment also follows the broader emphasis on repeatability seen in Docker-based carving experiments \cite{kumar2022docker} and forensic benchmarking work \cite{wickramasekara2026autodfbench}.
+
+\subsection{Synthesis and Research Gap}
+
+The literature establishes three points relevant to the proposed experiment. First, signature-based carving is a viable recovery method, but its success varies with file type, recovery tool, and test conditions \cite{pratama2021photorec,kumar2022docker}. Second, filesystem-specific studies show that metadata organization, journaling, allocation, and copy-on-write behaviour directly affect which traces remain after deletion \cite{venkatesh2024ntfs,kim2021ext4xfs,pandey2026btrfs}. Third, physical storage mechanisms can independently change data persistence, particularly on SSD and flash-based media \cite{iqbal2020ssdtrim,chen2022ransomware,chhajed2024persistence}.
+
+What remains limited in the reviewed work is a controlled comparison in which several modern filesystems are subjected to the same test corpus, deletion/overwrite procedure, virtual hardware, software versions, and PhotoRec recovery process. Existing comparative studies commonly vary more than one of these factors, while filesystem-specific studies frequently use specialized recovery methods that are not directly comparable with one another. The present study addresses that methodological gap by fixing the recovery tool and experimental environment while varying NTFS, exFAT, Ext4, Btrfs, and bcachefs. The resulting measurements should therefore be interpreted as comparative \emph{PhotoRec recoverability under standardized virtual conditions}, not as a universal ranking of the absolute forensic recoverability of each filesystem.
 
 \section{Methodology}
 % Explain the comprehensive approach you used to conduct this research here.
