@@ -6,7 +6,7 @@
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
-% URL package to refrence urls in bib without getting "Missing $ inserted" error and "LaTeX: Label(s) may have changed. Rerun to get cross-references right.LaTeX" warning.
+% URL package to reference urls in bib without getting "Missing $ inserted" error and "LaTeX: Label(s) may have changed. Rerun to get cross-references right.LaTeX" warning.
 \usepackage{url}
 \usepackage{tabularx}
 \usepackage{array}
@@ -49,7 +49,7 @@ Even after users delete files, format storage media, or lose access to data, dig
 
 File carving is used when file-system metadata is corrupted, incomplete, or missing, as it reconstructs file content directly from unallocated space using recognized file signatures and internal structural patterns. Tam and Abdullah \cite{tam2024androidjpeg} highlight PhotoRec as an effective carving utility that functions independently of active file-system structures and supports numerous file formats. In an experimental evaluation within the CAINE forensic environment, Carranza and DeCusatis \cite{carranza2021daubert} demonstrated that PhotoRec yields consistent, repeatable recovery performance, reinforcing its suitability as a standardized open-source carving tool. Further empirical studies confirm that PhotoRec can effectively carve target storage partitions without requiring a forensic image. For instance, Pratama \cite{pratama2021photorec} applied PhotoRec directly to a FAT32 USB flash drive and successfully recovered all 2,781 test files, while Dasmen et al.\ \cite{dasmen2024photorec} demonstrated the successful retrieval of diverse file types from external flash media. While these findings do not guarantee universal file recovery across all scenarios, they confirm PhotoRec's utility as a reliable signature-based recovery tool.
 
-Nevertheless, recovery success is heavily influenced by the specific file system and operational environment under investigation. Researching NTFS, Venkatesh et al.\ \cite{venkatesh2024ntfs} achieved an approximate 95\% recovery rate by parsing Master File Table (MFT) records to restore deleted files. In Linux environments, Kim et al.\ \cite{kim2021ext4xfs} demonstrated that alterations to Ext4 journal structures and XFS metadata directly affect tool performance and hash integrity during file reconstruction. Btrfs introduces unique challenges, as Pandey et al.\ \cite{pandey2026btrfs} note its copy-on-write (CoW) design, subvolumes, and historical B-tree roots preserve recoverable data states but require distinct reconstruction methodologies compared to traditional file systems. Collectively, these insights show that file-system architecture is a key aspect of forensic recoverability and should be evaluated as an explicit experimental variable.
+Nevertheless, recovery success is heavily influenced by the specific file system and operational environment under investigation. Researching NTFS, Venkatesh et al.\ \cite{venkatesh2024ntfs} achieved an approximate 95\% recovery rate by parsing Master File Table (MFT) records to restore deleted files. In Linux environments, Kim et al.\ \cite{kim2021ext4xfs} demonstrated that alterations to ext4 journal structures and XFS metadata directly affect tool performance and hash integrity during file reconstruction. Btrfs introduces unique challenges, as Pandey et al.\ \cite{pandey2026btrfs} note its copy-on-write (CoW) design, subvolumes, and historical B-tree roots preserve recoverable data states but require distinct reconstruction methodologies compared to traditional file systems. Collectively, these insights show that file-system architecture is a key aspect of forensic recoverability and should be evaluated as an explicit experimental variable.
 
 Rather than directly comparing underlying file systems, many other studies focus on specialized embedded platforms. For example, Raymer et al.\ \cite{raymer2023quest2} established a standardized forensic acquisition and analysis protocol for the Meta Quest 2, whereas Marques et al.\ \cite{marques2026bmw} investigated QNX6FS on BMW infotainment systems, utilizing PhotoRec to carve unallocated space. Although these investigations emphasize the importance of rigorous, reproducible methodologies, they also illustrate how current literature remains largely tied to specific hardware devices, specialized operating systems, or isolated file-system implementations.
 
@@ -65,23 +65,23 @@ This study addresses this problem by creating a controlled virtual test environm
 
 Existing work relevant to this study can be grouped into four broad themes. First, researchers have evaluated forensic tools and their performance. Carranza and DeCusatis \cite{carranza2021daubert} experimentally validated open-source tools including PhotoRec within CAINE, while Liambas and Manios \cite{liambas2024performance} compared PhotoRec and other forensic utilities across multiple operating systems and repeated each tool test, ten times to obtain the average execution times. Pratama \cite{pratama2021photorec} and Dasmen et al.\ \cite{dasmen2024photorec} both used PhotoRec for direct recovery from removable storage. Kumar and Haribabu \cite{kumar2022docker} compared Scalpel, Foremost, and PhotoRec when carving data from deleted Docker containers, providing a useful precedent for controlled recovery experiments conducted in virtualized or software-defined environments.
 
-Second, several studies investigate file recovery within a particular file system or storage architecture. Venkatesh et al.\ \cite{venkatesh2024ntfs} developed a Python/PyTSK3 approach for recovering deleted NTFS files through MFT analysis. Kim et al.\ \cite{kim2021ext4xfs} developed a TSK-based framework that uses Ext4 journal metadata for deleted-file recovery and XFS metadata for extraction, showing that forensic tool support must adapt when filesystem metadata structures change. Choi and Lee \cite{choi2022raid} similarly combine NTFS metadata analysis with file carving to recover data from damaged RAID systems. Most directly relevant to the present filesystem set, Pandey et al.\ \cite{pandey2026btrfs} show that Btrfs recovery is shaped by CoW B-trees, historical roots, subvolumes, and that a filesystem-aware method can reconstruct the file content, paths, and metadata when the required structures survive.
+Second, several studies investigate file recovery within a particular file system or storage architecture. Venkatesh et al.\ \cite{venkatesh2024ntfs} developed a Python/PyTSK3 approach for recovering deleted NTFS files through MFT analysis. Kim et al.\ \cite{kim2021ext4xfs} developed a TSK-based framework that uses ext4 journal metadata for deleted-file recovery and XFS metadata for extraction, showing that forensic tool support must adapt when filesystem metadata structures change. Choi and Lee \cite{choi2022raid} similarly combine NTFS metadata analysis with file carving to recover data from damaged RAID systems. Most directly relevant to the present filesystem set, Pandey et al.\ \cite{pandey2026btrfs} show that Btrfs recovery is shaped by CoW B-trees, historical roots, subvolumes, and that a filesystem-aware method can reconstruct the file content, paths, and metadata when the required structures survive.
 
 Third, file-carving studies have emphasized content-based recovery and integrity verification. Tam and Abdullah \cite{tam2024androidjpeg} describe file carving as recovery from raw or unallocated space without depending on active file-system metadata, and their Android JPEG recovery workflow uses hash values to verify recovered-file integrity. Kumar and Haribabu \cite{kumar2022docker} found that their carving tools did not preserve original filenames or timestamps and that recovery success varied by file type in their Docker dataset. Pandey et al.\ \cite{pandey2026btrfs} also distinguish signature-based carving from filesystem-aware reconstruction, noting that carving generally provides weaker path, metadata, fragmentation, and filesystem-consistency guarantees. These findings support the present study's decision to identify recovered artifacts by cryptographic hash rather than filename and to treat exact content integrity as a primary outcome.
 
-Finally, research on real storage devices demonstrates why environmental control is necessary. Sibe and Idigbo \cite{sibe2025pii} recovered substantial residual data from refurbished hard drives that had reportedly been formatted and sanitized. Chhajed \cite{chhajed2024persistence} found that deleted-file persistence can be affected by the filesystem, storage medium, operating system, and subsequent user activity. These studies provide strong real-world motivation, but they also illustrate the confounding factors introduced by physical HDDs and SSDs. The present study intentionally removes those hardware variables so that filesystem-dependent differences in Photorec recovery can be examined against a common virtual baseline.
+Finally, research on real storage devices demonstrates why environmental control is necessary. Sibe and Idigbo \cite{sibe2025pii} recovered substantial residual data from refurbished hard drives that had reportedly been formatted and sanitized. Chhajed \cite{chhajed2024persistence} found that deleted-file persistence can be affected by the filesystem, storage medium, operating system, and subsequent user activity. These studies provide strong real-world motivation, but they also illustrate the confounding factors introduced by physical HDDs and SSDs. The present study intentionally removes those hardware variables so that filesystem-dependent differences in PhotoRec recovery can be examined against a common virtual baseline.
 
 \subsection{Research Gap}
 
 Taken together, the initial literature establishes that deleted-data recovery, file carving, forensic-tool performance, and file-system-specific recovery are active research areas. However, the studies reviewed so far generally examine a single file system, a particular device or storage medium, or differences between recovery tools and operating environments. None of the articles in this first set directly compare several modern file systems under the same virtual hardware, test corpus, deletion procedure, and PhotoRec recovery process.
 
-The proposed study therefore shifts the file system itself to the primary independent variable. By testing NTFS, exFAT, ext4, Btrfs, and bcachefs in fresh, standardized virtual disks. The experiment is designed to reduce hardware-related confounders and isolate differences in logical recoverability.
+The proposed study therefore shifts the file system itself to the primary independent variable. By testing NTFS, exFAT, ext4, Btrfs, and bcachefs in fresh, standardized virtual disks, the experiment is designed to reduce hardware-related confounders and isolate differences in logical recoverability.
 
 The research gap addressed in this proposal is therefore the limited availability of controlled and repeatable experiments that compare forensic file recovery across multiple file-system architectures while keeping the recovery tool and experimental environment constant.
 
 \subsection{Research Objectives}
 
-The objective of this research is to deploy an automated, repeatable virtual testing environment to compare forensic data-recovery outcomes across different file systems while minimizing variation from hardware and experimental setup. This study aims to explore how the underlying filesystem architecture (NTFS, Ext4, exFAT, Btrfs, and bcachefs) affects the subsequent file carving through PhotoRec.
+The objective of this research is to deploy an automated, repeatable virtual testing environment to compare forensic data-recovery outcomes across different file systems while minimizing variation from hardware and experimental setup. This study aims to explore how the underlying filesystem architecture (NTFS, ext4, exFAT, Btrfs, and bcachefs) affects the subsequent file carving through PhotoRec.
 
 \section{Literature Review}
 Write your previous work here. We explore related work in three broad areas: theme 1, theme 2, and theme 3, followed by a literature review matrix that highlights the unanswered research gaps in each theme.
@@ -98,7 +98,7 @@ This research will use a quantitative, experimental, comparative methodology. It
 \subsection{Research Method}
 
 The primary independent variable will be file-system type, with five experimental levels: NTFS, exFAT, ext4, Btrfs, and bcachefs. If multiple data-loss scenarios are tested, the data-loss condition will act as a secondary independent variable.
-We are specifically using Nixos which will allow us to control specific packages.
+We are specifically using NixOS which will allow us to control specific packages.
 The primary dependent variable will be forensic recovery success. This will be measured through exact file recovery, determined by comparison with SHA-256 hashes recorded before deletion. For recoverable image files that fail exact hash verification, secondary measurements will evaluate image dimensions and pixel-level similarity to determine the extent to which visual content was recovered.
 Controlled variables will include the virtual-machine configuration, virtual-disk size, source dataset, filesystem preparation process, recovery software, recovery destination, and experimental procedure. A fresh virtual disk will be provided for each test run to prevent residual data from previous experiments from contaminating later trials.
 The virtual environment is particularly appropriate for this research because it isolates filesystem behaviour from physical-device characteristics. Consequently, the results should be interpreted as a controlled theoretical baseline rather than a direct simulation of real-world storage behaviour.
@@ -109,7 +109,7 @@ Experiments will be conducted within a standardized NixOS virtual-machine enviro
 
 For each trial, the test disk will be formatted using one of the selected file systems: NTFS, exFAT, ext4, Btrfs, or bcachefs. An identical standardized dataset will then be written to the file system. Before deletion, SHA-256 hashes will be generated and stored for later integrity verification. The current recovery environment already follows this model by creating known files and recording their hashes before the data-loss operation.
 
-The data loss scenario will test recovery after a logical delete via the gnu coreutils `rm` command. Next, a different fixed dataset will be written to the recovery target disk to simulate data being overwritten by normal computer use. Afterwards, the disk will be unmounted and photorec will be run against the recovery target disk.
+The data loss scenario will test recovery after a logical delete via the GNU coreutils `rm` command. Next, a different fixed dataset will be written to the recovery target disk to simulate data being overwritten by normal computer use. Afterwards, the disk will be unmounted and PhotoRec will be run against the recovery target disk.
 
 Image files will be subject to an additional evaluation for partially recovered data. The team's current Python implementation generates deterministic 1920×1080-pixel solid-colour PNG images with preset metadata and is capable of comparing images at the individual-pixel level. The analysis code compares image content hashes and when they differ, records the coordinates of pixels with different RGB values.
 
@@ -133,7 +133,7 @@ Steps 1-10 will be repeated 10 times for each file system. The average of the te
 
 Recovery results will be analyzed primarily using exact file integrity and recovery-rate measurements.
 
-Photorec mainly recovers files by patterns in the file contents rather than file system records. Therefore, the differences in recovery are not solely reliant on the file system architecture. However, with our reproducible vm environment testing each filesystem with the same recovery files we can control other factors and compare the filesystems in the exact same conditions.
+PhotoRec mainly recovers files by patterns in the file contents rather than file system records. Therefore, the differences in recovery are not solely reliant on the file system architecture. However, with our reproducible VM environment testing each filesystem with the same recovery files, we can control other factors and compare the filesystems in the exact same conditions.
 
 First, each recovered file will be hashed and compared with the SHA-256 hashes recorded in the original log. A matching hash indicates the file was recovered byte-for-byte. For each filesystem and experimental condition, the following values will be calculated:
 
@@ -156,7 +156,7 @@ $}
 \subsection {Data Measurement Models}
 
 We will be using a continuous measurement model to test data recoverability. A matching SHA-256 hash will indicate that the recovered artifact is identical to its baseline version. The existing Nix recovery checker already follows this concept by matching recovered files against the previously generated manifest based on SHA-256 rather than relying on filenames, which may be lost during file carving.
-For image artifacts that are recovered but fail integrity verification, additional content-level analysis will be performed. The Python image-analysis program is designed to compare image dimensions, image-content hashes, metadata, and individual pixel values. A pixel-integrity measurement can therefore be expressed as: 
+For image artifacts that are recovered but fail integrity verification, additional content-level analysis will be performed. The Python image-analysis program is designed to compare image dimensions, image-content hashes, metadata, and individual pixel values. A pixel-integrity measurement can therefore be expressed as:
 
 \begin{equation}
 \resizebox{0.80\columnwidth}{!}{$\displaystyle
@@ -183,7 +183,7 @@ The results can be presented using bar charts for mean recovery rates, box plots
 \hline
 \textbf{Creating Python Scripts} & October 7 -- October 10 2026 & Generate test photos, compare the original generated photo with the recovered photo using automation, and dump results into a log file for data analysis at a later date, as well as a Python log file digester script \\
 \hline
-\textbf{Data Collection} & October 21 -- October 31 2026 & Finalize testbed and Python scripts for accurate data collection and run experiments to generate Data in the log file \\
+\textbf{Data Collection} & October 21 -- October 31 2026 & Finalize testbed and Python scripts for accurate data collection and run experiments to generate data in the log file \\
 \hline
 \textbf{Data Analysis} & November 1 -- November 5 2026 & Parse and organize experimental results, calculate recovery rates from log files, identify trends and anomalies \\
 \hline
@@ -212,7 +212,7 @@ Provide the result of your analysis in the form of figures and tables here and e
 What challenge did you face? Is your result generalizable? How did you validate your result?
 
 \section{Conclusion and Future Work}
-What are the existing gaps and unanswered research questions? what is the next step? 
+What are the existing gaps and unanswered research questions? what is the next step?
 
 \section*{Acknowledgment}
 
@@ -222,6 +222,6 @@ Provide your citations as long as you continue with your research. For example, 
 % Add all references (without explicitly calling them)
 \nocite{*}
 \bibliographystyle{IEEEtran}  % IEEE style
-\bibliography{refs} 
+\bibliography{refs}
 
 \end{document}
