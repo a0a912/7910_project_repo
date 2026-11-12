@@ -83,7 +83,6 @@ The research gap addressed in this proposal is therefore the limited availabilit
 
 The objective of this research is to deploy an automated, repeatable virtual testing environment to compare forensic data-recovery outcomes across different file systems while minimizing variation from hardware and experimental setup. This study aims to explore how the underlying filesystem architecture (NTFS, ext4, exFAT, Btrfs, and bcachefs) affects the subsequent file carving through PhotoRec.
 
-
 \section{Literature Review}
 
 The literature relevant to this study spans two related but distinct approaches to deleted-data recovery. The first is \emph{content-based file carving}, in which tools such as PhotoRec search storage for recognizable file signatures and structures without depending on an intact filesystem directory. The second is \emph{filesystem-aware recovery}, in which investigators interpret filesystem-specific metadata such as the NTFS Master File Table (MFT), Ext4 journals, FAT allocation structures, or Btrfs B-trees. Both approaches show that deleted data can remain recoverable, but they measure different aspects of recoverability. For this reason, the present study keeps PhotoRec constant and treats filesystem type as the independent variable rather than attempting to compare fundamentally different recovery algorithms.
@@ -275,18 +274,9 @@ The results can be presented using bar charts for mean recovery rates, box plots
 
 \section{Evaluation}
 \subsection{Research Questions/Hypothesis}
-\subsection {Evaluation metrics}
-\begin{itemize}
-\item Metric 1
-\item Metric 2
-\item Metric 3
-\item .....
-\end{itemize}
-\subsection {Result}
-Provide the result of your analysis in the form of figures and tables here and explain how your results answer your research questions
 
-\section{Discussion}
-What challenge did you face? Is your result generalizable? How did you validate your result?
+The main question behind our research is how different filesystem architectures (NTFS, Ext4, exFAT, Btrfs, and bcachefs) affect the outcome of file carving through PhotoRec.
+Is there a significant relationship between different file systems and the ability to recover deleted data using PhotoRec?
 
 \section{Conclusion and Future Work}
 What are the existing gaps and unanswered research questions? what is the next step?
