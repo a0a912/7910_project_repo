@@ -282,12 +282,12 @@ The main question behind our research is how different filesystem architectures 
 Is there a significant relationship between different file systems and the ability to recover deleted data using PhotoRec?
 
 \section{Conclusion and Future Work}
-What are the existing gaps and unanswered research questions? what is the next step?
+\subsection{Future Work}
+The present experiment is intentionally designed as a controlled software-level baseline. By using fresh virtual disks in a reproducible NixOS environment, the study reduces hardware-specific effects and allows differences in PhotoRec recovery to be compared while the test corpus, deletion procedure, overwrite workload, and recovery software remain constant. In this sense, the virtual environment represents a theoretical best-case or control condition for logical file recovery rather than a complete representation of field conditions.
+
+A natural extension of this work is to repeat the same experimental procedure on physical USB flash drives and compare the results directly with the virtual baseline. Prior studies show that recovery from physical storage can be affected by the storage medium and subsequent device activity \cite{chhajed2024persistence}, while flash-based storage introduces additional controller-level behavior such as wear levelling, garbage collection, and flash-translation-layer management that may alter the persistence of deleted data \cite{iqbal2020ssdtrim,chen2022ransomware}. Physical USB recovery with PhotoRec has also been demonstrated in prior work \cite{pratama2021photorec}. Future testing would therefore use the same filesystems, test corpus, deletion/overwrite procedure, PhotoRec configuration, and SHA-256 verification used in the virtual experiment, while introducing physical USB hardware as the primary new variable. Comparing several USB devices or models against the VM control would help determine how much real storage hardware changes recovery success, integrity, and processing time.
 
 \section*{Acknowledgment}
-
-\section*{References}
-Provide your citations as long as you continue with your research. For example, Einsteign et.al. \cite{einstein1905} demonstrated that energy converts...
 
 \bibliographystyle{IEEEtran}  % IEEE style
 \bibliography{refs}
