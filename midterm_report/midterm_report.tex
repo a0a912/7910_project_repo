@@ -10,6 +10,7 @@
 \usepackage{url}
 \usepackage{tabularx}
 \usepackage{array}
+\usepackage{caption}
 \newcolumntype{C}[1]{>{\centering\arraybackslash\hyphenpenalty=10000}p{#1}}
 \newcolumntype{Y}{>{\centering\arraybackslash\hyphenpenalty=10000}X}
 \begin{document}
@@ -82,6 +83,7 @@ The research gap addressed in this proposal is therefore the limited availabilit
 \subsection{Research Objectives}
 
 The objective of this research is to deploy an automated, repeatable virtual testing environment to compare forensic data-recovery outcomes across different file systems while minimizing variation from hardware and experimental setup. This study aims to explore how the underlying filesystem architecture (NTFS, ext4, exFAT, Btrfs, and bcachefs) affects the subsequent file carving through PhotoRec.
+
 
 \section{Literature Review}
 
@@ -245,8 +247,8 @@ Recovery speed will also be evaluated. Acquisition time, PhotoRec carving time, 
 The results can be presented using bar charts for mean recovery rates, box plots for the distribution of recovery times across repeated trials, and a comparison table and heatmap showing exact and partial recovery performance for each filesystem.
 
 \subsection{Timeline \& Milestones}
-\begin{table}[h]
-\centering
+\vspace{1em}
+\begin{center}
 \small
 \renewcommand{\arraystretch}{1.3}
 \begin{tabularx}{\columnwidth}{|C{1.9cm}|C{2.1cm}|Y|}
@@ -268,26 +270,28 @@ The results can be presented using bar charts for mean recovery rates, box plots
 \textbf{Final Report \& Presentation} & December 2026 & Complete final report, Complete final presentation and show our findings \\
 \hline
 \end{tabularx}
-\end{table}
+\captionof{table}{Project timeline}
+\end{center}
 
 
 
 \section{Evaluation}
 \subsection{Research Questions/Hypothesis}
+\subsection {Evaluation metrics}
+\begin{itemize}
+\item Metric 1
+\item Metric 2
+\item Metric 3
+\item .....
+\end{itemize}
+\subsection {Result}
+Provide the result of your analysis in the form of figures and tables here and explain how your results answer your research questions
 
-The main question behind our research is how different filesystem architectures (NTFS, Ext4, exFAT, Btrfs, and bcachefs) affect the outcome of file carving through PhotoRec.
-Is there a significant relationship between different file systems and the ability to recover deleted data using PhotoRec?
+\section{Discussion}
+What challenge did you face? Is your result generalizable? How did you validate your result?
 
 \section{Conclusion and Future Work}
 What are the existing gaps and unanswered research questions? what is the next step?
-
-
-
-\subsection{Future Work}
-The present experiment is intentionally designed as a controlled software-level baseline. By using fresh virtual disks in a reproducible NixOS environment, the study reduces hardware-specific effects and allows differences in PhotoRec recovery to be compared while the test corpus, deletion procedure, overwrite workload, and recovery software remain constant. In this sense, the virtual environment represents a theoretical best-case or control condition for logical file recovery rather than a complete representation of field conditions.
-
-A natural extension of this work is to repeat the same experimental procedure on physical USB flash drives and compare the results directly with the virtual baseline. Prior studies show that recovery from physical storage can be affected by the storage medium and subsequent device activity \cite{chhajed2024persistence}, while flash-based storage introduces additional controller-level behavior such as wear levelling, garbage collection, and flash-translation-layer management that may alter the persistence of deleted data \cite{iqbal2020ssdtrim,chen2022ransomware}. Physical USB recovery with PhotoRec has also been demonstrated in prior work \cite{pratama2021photorec}. Future testing would therefore use the same filesystems, test corpus, deletion/overwrite procedure, PhotoRec configuration, and SHA-256 verification used in the virtual experiment, while introducing physical USB hardware as the primary new variable. Comparing several USB devices or models against the VM control would help determine how much real storage hardware changes recovery success, integrity, and processing time.
-
 
 \section*{Acknowledgment}
 
